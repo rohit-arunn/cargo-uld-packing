@@ -30,9 +30,9 @@ def boxes_overlap(box1, box2):
     x2, y2, z2, dx2, dy2, dz2 = box2
 
     return not (
-        (x1 + dx1 <= x2 or x2 + dx2 <= x1) and
-        (y1 + dy1 <= y2 or y2 + dy2 <= y1) and
-        (z1 + dz1 <= z2 or z2 + dz2 <= z1)
+        x1 + dx1 <= x2 or x2 + dx2 <= x1 or
+        y1 + dy1 <= y2 or y2 + dy2 <= y1 or
+        z1 + dz1 <= z2 or z2 + dz2 <= z1
     )
 
 def collides_with_existing(x, y, z, dx, dy, dz, placed_boxes):
@@ -243,4 +243,3 @@ def layer_based_pack(box_list, container_dims=(92, 60.4, 64), layer_height_step=
 # ax.view_init(elev=25, azim=35)
 # plt.tight_layout()
 # plt.show()
-
