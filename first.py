@@ -1,67 +1,229 @@
 import numpy as np
+import pandas as pd
+import random
+from itertools import permutations
 import matplotlib.pyplot as plt
+from packing import draw_box, is_box_inside_uld, is_point_inside_uld
+from packing import draw_uld
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def draw_cuboid(ax, origin, color='skyblue'):
-    x, y, z = origin
-     
-
-    
-    vertices = [
-        [x,     y,     z],           
-        [x+61,  y,     z],           
-        [x+61,  y+60.4,  z],           
-        [x,     y+60.4,  z],           
-        [x,     y,     z+64],       
-        [x+92,  y,     z+64],        
-        [x+92,  y+60.4,  z+64],       
-        [x,     y+60.4,  z+64], 
-        [x+92,  y+60.4,  z+21.33],
-        [x+92,  y,  z+21.33] 
-
-                          
-    ]
-
-    # The seven faces of the ULD are mentioned below with the order of vertices of each face going in a circle. 
-    faces = [
-        [vertices[0], vertices[1], vertices[2], vertices[3]],  
-        [vertices[4], vertices[5], vertices[6], vertices[7]],  
-        [vertices[0], vertices[1], vertices[9], vertices[5], vertices[4]],  
-        [vertices[2], vertices[3], vertices[7], vertices[6], vertices[8]],  
-        [vertices[1], vertices[2], vertices[8], vertices[9]],  
-        [vertices[0], vertices[3], vertices[7], vertices[4]], 
-        [vertices[5], vertices[6], vertices[8], vertices[9]]   
-    ]     
-
-    # Draw the cuboid using Poly3DCollection
-    poly3d = Poly3DCollection(faces, facecolors=color, edgecolors='k', linewidths=1, alpha=0.8)
-    ax.add_collection3d(poly3d)
+df = pd.read_parquet("flight_ICN_to_BUD.parquet")
 
 
-    
-# === Plot setup ===
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
+boxes = []
+for idx, row in df.iterrows():
+    box_id = (
+        row['mstdocnum'], row['docowridr'], row['dupnum'],
+        row['seqnum'], row['ratlinsernum'], row['dimsernum']
+    )
+    length = float(row['pcslen'])
+    width = float(row['pcswid'])
+    height = float(row['pcshgt'])
+    numpcs = int(row['dim_numpcs'])
 
-# Call the function to draw a cuboid
-draw_cuboid(ax, origin=(0, 0, 0))  
+    boxes.append({
+        'box_id': box_id,
+        'dimensions': (length, width, height),
+        'number' : numpcs
+    })
 
 
-# Configure axes
-# Coordinates of the point
-spot_x, spot_y, spot_z = 70, 10, 20
+# def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.95):
+#     if z == 0:
+#         return True  # Base layer is always supported
 
-# Add a darkened spot using scatter
-ax.scatter(spot_x, spot_y, spot_z, color='black', s=20, label='Point of Interest')  # s is the size
+#     support_area = grid[z - 1, y:y + dy, x:x + dx]
+#     total_cells = support_area.size
+#     filled_cells = np.count_nonzero(support_area == 1)
+
+#     support_ratio = filled_cells / total_cells
+
+#     return support_ratio >= threshold
+
+def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.95):
+    if z == 0:
+        return True  # Base layer is always supported
+
+    support_area = grid[z - 1, y:y + dy, x:x + dx]
+    total_cells = support_area.size
+    filled_cells = np.count_nonzero(support_area == 1)
+
+    support_ratio = filled_cells / total_cells
+
+    return support_ratio >= threshold
+
+def grid_based_pack(box_list, container_dims=(92, 60.4, 64), grid_step=1):
+    container_length, container_width, container_height = container_dims
+    # Convert dimensions to grid units
+    lx = int(container_length / grid_step)
+    ly = int(container_width / grid_step)
+    lz = int(container_height / grid_step)
+
+    # Initialize 3D occupancy grid
+    grid = np.zeros((lz, ly, lx), dtype=np.uint8)
+    placed_boxes = []
+    next_box_list = []
+
+    for box in box_list:
+        box_id = box['box_id']
+        original_dims = box['dimensions']
+        numpcs = box.get('number', 1)
+        color = box.get('colour', (random.random(), random.random(), random.random()))
+
+        # Convert dimensions to grid steps
+        rotations = [tuple(int(d / grid_step) for d in p) 
+                     for p in permutations(original_dims)]  # Lay flat
+
+        placed_count = 0
+
+        for _ in range(numpcs):
+            placed = False
+
+            for dx, dy, dz in rotations:
+                # Iterate layer by layer from bottom up
+                for z in range(lz - dz + 1):
+                    for y in range(ly - dy + 1):
+                        for x in range(lx - dx + 1):
+                            # Check if space is free
+                            if np.all(grid[z:z+dz, y:y+dy, x:x+dx] == 0):
+                                 if (is_box_inside_uld(x, y, z, dx, dy, dz) and is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.6)
+                                     ):
+                                # Place box
+                                    grid[z:z+dz, y:y+dy, x:x+dx] = 1
+
+                                    # Convert back to real coordinates
+                                    px, py, pz = x * grid_step, y * grid_step, z * grid_step
+                                    real_dims = (dx * grid_step, dy * grid_step, dz * grid_step)
+
+                                    placed_boxes.append({
+                                        'box_id': box_id,
+                                        'position': (px, py, pz),
+                                        'dimensions': real_dims,
+                                        'colour': color
+                                    })
+
+                                    placed = True
+                                    break
+                        if placed: break
+                    if placed: break
+                if placed:
+                    placed_count += 1
+                    break
+
+            # Not all pieces could be placed, requeue
+            remaining = numpcs - placed_count
+            if remaining > 0:
+                next_box_list.append({
+                    'box_id': box_id,
+                    'dimensions': original_dims,
+                    'number': remaining,
+                    'colour': color
+                })
+            box_list = next_box_list
+
+    return placed_boxes
 
 
-ax.set_xlabel('X-axis (Width)')
-ax.set_ylabel('Y-axis (Depth)')
-ax.set_zlabel('Z-axis (Height)')
-ax.set_xlim(0, 100)
-ax.set_ylim(0, 100)
-ax.set_zlim(0, 100)
-ax.set_title('LD1 ULD')
-ax.view_init(elev=25, azim=35)
-plt.tight_layout()
-plt.show()
+# def grid_based_pack(box_list, container_dims=(92, 60.4, 64), grid_step=1):
+#     container_length, container_width, container_height = container_dims
+#     # Convert dimensions to grid units
+#     lx = int(container_length / grid_step)
+#     ly = int(container_width / grid_step)
+#     lz = int(container_height / grid_step)
+
+#     # Initialize 3D occupancy grid
+#     grid = np.zeros((lz, ly, lx), dtype=np.uint8)
+#     placed_boxes = []
+#     next_box_list = []
+
+#     for box in box_list:
+#         box_id = box['box_id']
+#         original_dims = box['dimensions']
+#         numpcs = box.get('number', 1)
+#         color = box.get('colour', (random.random(), random.random(), random.random()))
+
+#         # Convert dimensions to grid steps
+#         rotations = [tuple(int(d / grid_step) for d in p) 
+#                      for p in permutations(original_dims)]  # Lay flat
+
+#         placed_count = 0
+
+#         for _ in range(numpcs):
+#             placed = False
+
+#             for dx, dy, dz in rotations:
+#                 # Iterate layer by layer from bottom up
+#                 for z in range(lz - dz + 1):
+#                     for y in range(ly - dy + 1):
+#                         for x in range(lx - dx + 1):
+#                             # Check if space is free
+#                             if np.all(grid[z:z+dz, y:y+dy, x:x+dx] == 0):
+#                                  if (is_box_inside_uld(x, y, z, dx, dy, dz) and is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.6)):
+#                                 # Place box
+#                                     grid[z:z+dz, y:y+dy, x:x+dx] = 1
+
+#                                     # Convert back to real coordinates
+#                                     px, py, pz = x * grid_step, y * grid_step, z * grid_step
+#                                     real_dims = (dx * grid_step, dy * grid_step, dz * grid_step)
+
+#                                     placed_boxes.append({
+#                                         'box_id': box_id,
+#                                         'position': (px, py, pz),
+#                                         'dimensions': real_dims,
+#                                         'colour': color
+#                                     })
+
+#                                     placed = True
+#                                     break
+#                         if placed: break
+#                     if placed: break
+#                 if placed:
+#                     placed_count += 1
+#                     break
+
+#             # Not all pieces could be placed, requeue
+#             remaining = numpcs - placed_count
+#             if remaining > 0:
+#                 next_box_list.append({
+#                     'box_id': box_id,
+#                     'dimensions': original_dims,
+#                     'number': remaining,
+#                     'colour': color
+#                 })
+#             box_list = next_box_list
+
+#     return placed_boxes
+
+# fig = plt.figure(figsize=(10, 7))
+# ax = fig.add_subplot(111, projection='3d')
+
+# draw_uld(ax)
+
+# best_chromosome = grid_based_pack(boxes)
+
+# a = 0
+
+# for box in best_chromosome:
+#         x, y, z = box['position']
+#         dx, dy, dz = box['dimensions']
+#         color = box['colour']
+#         draw_box(ax, x, y, z, dx, dy, dz, color)
+#         a+=1
+
+# print(a)
+
+
+
+# #Axis setup
+# ax.set_xlabel('X (Width)')
+# ax.set_ylabel('Y (Depth)')
+# ax.set_zlabel('Z (Height)')
+# ax.set_xlim(0, 100)
+# ax.set_ylim(0, 70)
+# ax.set_zlim(0, 70)
+# ax.set_title('Packing inside ULD - 2 ')
+# ax.view_init(elev=25, azim=35)
+# plt.tight_layout()
+# plt.show()
+
+
