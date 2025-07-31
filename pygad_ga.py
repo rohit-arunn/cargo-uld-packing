@@ -1,5 +1,6 @@
 import pygad
 import numpy as np
+import uuid
 import pandas as pd
 import copy
 import matplotlib.pyplot as plt
@@ -31,35 +32,63 @@ for idx, row in df.iterrows():
 
 solution_placements = {}
 
-# Define fitness function
+best_fitness = -np.inf  # Global variable
+best_key = None  # Global variable to track best placement key 
+
 def fitness_function(ga_instance, solution, solution_idx):
-    order = list(map(int, solution))  # convert solution to list of ints
-    ordered_boxes = [copy.deepcopy(boxes[i]) for i in order]  # preserve box data
+    global best_fitness, best_key
+    order = list(map(int, solution))
+    ordered_boxes = [copy.deepcopy(boxes[i]) for i in order]
     fitness_value, placed_boxes = evaluate_fitness(ordered_boxes)
-    solution_placements[solution_idx] = placed_boxes
-    #print(f"Evaluating solution index {solution_idx}")
+
+    # Unique key using generation + index 
+    generation = ga_instance.generations_completed
+    key = f"G{generation}_S{solution_idx}"
+    solution_placements[key] = placed_boxes
+
+    # Save the best one
+    if fitness_value > best_fitness:
+        best_fitness = fitness_value
+        best_key = key
+
     return fitness_value
 
+
+# # Define fitness function
+# def fitness_function(ga_instance, solution, solution_idx): 
+#     order = list(map(int, solution))  # convert solution to list of ints   
+#     ordered_boxes = [copy.deepcopy(boxes[i]) for i in order]  # preserve box data  
+#     fitness_value, placed_boxes = evaluate_fitness(ordered_boxes)
+#     unique_key = f"G{ga_instance.generations_completed}_S{solution_idx}_{uuid.uuid4().hex[:4]}"
+#     solution_placements[unique_key] = placed_boxes
+
+#     print("order - ", order)
+#     print("ordered boxes -", ordered_boxes)
+#     print("unique key - ", unique_key)
+#     #solution_placements[solution_idx] = placed_boxes
+#     print("IDX for this one - ", solution_idx)
+#     return fitness_value
+
 # GA parameters
-num_genes = len(boxes)  # One gene per box (ordering problem) 
+num_genes = len(boxes)  # One gene per box (ordering problem)      
 crossover_type="two_points"
-mutation_type="random"
+mutation_type="swap"
 parent_selection_type="tournament"
 
 
 ga_instance = pygad.GA(
-    num_generations=7,
-    num_parents_mating=4,
+    num_generations=3,
+    num_parents_mating=3,
     fitness_func=fitness_function,
-    sol_per_pop=10,
+    sol_per_pop=6,
     num_genes=num_genes,
     gene_type=int,
     gene_space=list(range(len(boxes))),
-    allow_duplicate_genes=False,  
+    allow_duplicate_genes=False, 
     parent_selection_type=parent_selection_type,
     crossover_type = crossover_type,
     mutation_type = mutation_type,
-    mutation_percent_genes=10
+    mutation_percent_genes=20
 )
 
 
@@ -81,7 +110,10 @@ if __name__ == '__main__':
 
     #print("The solution to everything - ", solution_placements)
 
-    returned_boxes = solution_placements[solution_idx] #[copy.deepcopy(boxes[i]) for i in solution]
+    #returned_boxes = solution_placements[solution_idx] #[copy.deepcopy(boxes[i]) for i in solution] 
+
+    returned_boxes = solution_placements[best_key]
+
     print(returned_boxes)
 
 
@@ -115,5 +147,6 @@ if __name__ == '__main__':
     ax.view_init(elev=25, azim=35)
     plt.tight_layout()
     plt.show() 
+
 
 
