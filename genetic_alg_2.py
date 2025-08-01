@@ -5,6 +5,9 @@ import random
 from multiprocessing import Pool, cpu_count
 from packing import draw_uld, draw_box
 import random
+from plotly_eg import create_container, create_box
+import plotly.graph_objects as go
+from plotly.offline import plot
 import matplotlib.pyplot as plt
 import random
 from packing_ld1 import grid_based_pack, is_supported_in_grid, is_point_inside_uld, is_box_inside_uld, get_unique_rotations
@@ -283,3 +286,33 @@ if __name__ == '__main__':
     ax.view_init(elev=25, azim=35)
     plt.tight_layout()
     plt.show()
+
+
+
+
+
+    box_data = [
+        (*box['position'], *box['dimensions'], box['colour'])
+        for box in best
+    ]
+
+    container_mesh, container_edges = create_container('lightgray')
+
+    traces = [container_mesh, container_edges]
+
+    for x, y, z, dx, dy, dz, color in box_data:
+        traces.append(create_box(x, y, z, dx, dy, dz, color=color, opacity=1.0, name="Box"))
+
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(nticks=10, range=[0, 100], backgroundcolor="white"),
+            yaxis=dict(nticks=10, range=[0, 65], backgroundcolor="white"),
+            zaxis=dict(nticks=10, range=[0, 70], backgroundcolor="white"),
+            aspectmode='cube'
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+    )
+
+    # Open in browser
+    plot(fig, filename='Optimized packing', auto_open=True)
