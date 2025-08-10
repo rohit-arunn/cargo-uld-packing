@@ -1,14 +1,13 @@
 import numpy as np
-import math
 import pandas as pd
 import random
 from multiprocessing import Pool, cpu_count
 from packing import draw_uld, draw_box
 import random
-from plotly_eg import create_container, create_box
+import matplotlib.pyplot as plt
+from plotly_main import create_container, create_box
 import plotly.graph_objects as go
 from plotly.offline import plot
-import matplotlib.pyplot as plt
 import random
 from packing_ld1 import grid_based_pack, is_supported_in_grid, is_point_inside_uld, is_box_inside_uld, get_unique_rotations
 from itertools import permutations
@@ -24,7 +23,7 @@ for idx, row in df.iterrows():
         row['seqnum'], row['ratlinsernum'], row['dimsernum']
     ) 
     length = float(row['pcslen']) 
-    width = float(row['pcswid'])
+    width = float(row['pcswid']) 
     height = float(row['pcshgt']) 
     numpcs = int(row['dim_numpcs'])
     weight = float(row['dim_wgt']) 
@@ -101,7 +100,7 @@ def grid_fill_ratio(grid):
 
     used_grid = grid[:highest_layer]
 
-    # Step 3: Count filled cells and total space in used volume
+    # Step 3: Count filled cells and total space in used volume  
     filled_spaces = np.count_nonzero(used_grid)
     total_spaces = used_grid.size
 
@@ -131,24 +130,6 @@ def evaluate_fitness(chromosome):
         return 0.0            
 
 
-    # max_z_real = max(b['position'][2] + b['dimensions'][2] for b in placed) 
-    # max_z_idx  = math.ceil(max_z_real / GRID_STEP)
-
-    
-    # gx = math.ceil(CONTAINER_DIMS[0] / GRID_STEP)
-    # gy = math.ceil(CONTAINER_DIMS[1] / GRID_STEP)
-    # gz = max_z_idx
-
-    # grid = np.zeros((gz, gy, gx), dtype=np.uint8)    
-
-    
-    # for b in placed: 
-    #     x, y, z  = (int(b['position'][i] / GRID_STEP) for i in (0,1,2))
-    #     dx, dy, dz = (int(b['dimensions'][i] / GRID_STEP) for i in (0,1,2))
-    #     grid[z : z+dz, y : y+dy, x : x+dx] = 1
-
-    # filled_cells = np.count_nonzero(grid)
-    # total_cells  = grid.size  
 
     weight_penalty = calculate_weight_penalty(placed)
     volume_reward = grid_fill_ratio(grid)
@@ -166,13 +147,13 @@ def evaluate_fitness(chromosome):
 # def mutate(chromo, mutation_rate=0.3):  
 #     for gene in chromo:
 #         if random.random() < mutation_rate:
-#             gene['rotation'] = random.choice(all_rotations(gene['rotation']))
+#             gene['rotation'] = random.choice(all_rotations(gene['rotation']))  
 
 def crossover(parent1, parent2):
     size = len(parent1)
     a, b = sorted(random.sample(range(size), 2))
     
-    # Step 1: Copy the slice from parent1 
+    # Step 1: Copy the slice from parent1
     child = [None] * size
     child[a:b] = parent1[a:b]
 
@@ -195,25 +176,25 @@ def crossover(parent1, parent2):
 def mutate(chromo, mutation_rate=0.1):
     num_swaps = max(1, int(mutation_rate * len(chromo)))
     for _ in range(num_swaps):
-        i, j = random.sample(range(len(chromo)), 2)
+        i, j = random.sample(range(len(chromo)), 2)   
         chromo[i], chromo[j] = chromo[j], chromo[i]
     return chromo
 
 
 
-def run_ga(boxes, generations=5, pop_size=6):
+def run_ga(boxes, generations=3, pop_size=3): 
     pop = generate_initial_population(boxes, pop_size)
 
     fitnesses_main = []
     placements_main = []
 
     for gen in range(generations):
-        with Pool(processes=6) as pool:  
+        with Pool(processes=8) as pool:  
             results = pool.map(evaluate_fitness, pop)
         fitnesses, placements = map(list, zip(*results))
 
         # print("fitnesses - ", fitnesses)         
-        # print("placements - ", placements) 
+        # print("placements - ", placements)
 
 
         fitnesses_main += fitnesses
@@ -223,20 +204,20 @@ def run_ga(boxes, generations=5, pop_size=6):
 
         print(f'GEN {gen:03d}  best = {max(fitnesses):.3f}')
 
-        # Selection ( size 3)
+        # Selection ( size 3)  athu parquet aakkitt parquey
+        # 
         def select():
             k = 3
             contenders = random.sample(list(zip(pop, fitnesses)), k)
             contenders.sort(key=lambda t: t[1], reverse=True)
-            print(contenders)
             return contenders[0][0]
 
         next_pop = []
         while len(next_pop) < pop_size:
             p1, p2  = select(), select()
             child   = crossover(p1, p2)
-            child = mutate(child, 0.1)
-            next_pop.append(child)
+            child = mutate(child, 0.3)
+            next_pop.append(child) 
 
         pop = next_pop
 
@@ -250,51 +231,51 @@ def run_ga(boxes, generations=5, pop_size=6):
 
 if __name__ == '__main__':
     best = run_ga(boxes)
-    print('Best chromosome rotations:')
+    print('Best chromosome positions:')
     for g in best:
-        print(g['box_id'], g['dimensions'])
+        print(g['box_id'], g['position'])
     
 
-    fig = plt.figure(figsize=(10, 7))
-    ax = fig.add_subplot(111, projection='3d')
+    # fig = plt.figure(figsize=(10, 7))
+    # ax = fig.add_subplot(111, projection='3d') 
 
-    draw_uld(ax)
+    # draw_uld(ax)
 
-    #best_chromosome = run_ga(boxes) 
+    # #best_chromosome = run_ga(boxes) 
 
-    a = 0
+    # a = 0
 
-    for box in best:
-            x, y, z = box['position']
-            dx, dy, dz = box['dimensions']
-            color = box['colour']
-            draw_box(ax, x, y, z, dx, dy, dz, color)
-            a+=1
+    # for box in best:
+    #         x, y, z = box['position']
+    #         dx, dy, dz = box['dimensions']
+    #         color = box['colour']
+    #         draw_box(ax, x, y, z, dx, dy, dz, color)
+    #         a+=1
 
-    print("Boxes plotted - ", a)
-
-
-
-    #Axis setup
-    ax.set_xlabel('X (Width)')
-    ax.set_ylabel('Y (Depth)')
-    ax.set_zlabel('Z (Height)')
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 70)
-    ax.set_zlim(0, 70)
-    ax.set_title('Packing inside ULD - 2 ')
-    ax.view_init(elev=25, azim=35)
-    plt.tight_layout()
-    plt.show()
+    # print("Boxes plotted - ", a)
 
 
 
+    # #Axis setup
+    # ax.set_xlabel('X (Width)')
+    # ax.set_ylabel('Y (Depth)')
+    # ax.set_zlabel('Z (Height)')
+    # ax.set_xlim(0, 100)
+    # ax.set_ylim(0, 70)
+    # ax.set_zlim(0, 70)
+    # ax.set_title('Packing inside ULD - 2 ')
+    # ax.view_init(elev=25, azim=35)
+    # plt.tight_layout() 
+    # plt.show() 
 
-
+    
     box_data = [
         (*box['position'], *box['dimensions'], box['colour'])
         for box in best
     ]
+
+    a = len(box_data)
+    print("No: of boxes plotted -", a)
 
     container_mesh, container_edges = create_container('lightgray')
 
@@ -309,10 +290,10 @@ if __name__ == '__main__':
             xaxis=dict(nticks=10, range=[0, 100], backgroundcolor="white"),
             yaxis=dict(nticks=10, range=[0, 65], backgroundcolor="white"),
             zaxis=dict(nticks=10, range=[0, 70], backgroundcolor="white"),
-            aspectmode='cube'
+            aspectmode='data'
         ),
         margin=dict(l=0, r=0, t=0, b=0),
     )
 
     # Open in browser
-    plot(fig, filename='Optimized packing', auto_open=True)
+    plot(fig, filename='Optimized_packing.html', auto_open=True)
