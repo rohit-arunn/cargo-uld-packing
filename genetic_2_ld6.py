@@ -168,18 +168,18 @@ def mutate(chromo, mutation_rate=0.3):
 
 
 
-def run_ga(boxes, generations=9, pop_size=8): 
+def run_ga(boxes, generations=9, pop_size=4): 
     pop = generate_initial_population(boxes, pop_size) 
 
     fitnesses_main = []
-    placements_main = []
+    placements_main = []       
 
     for gen in range(generations):
         with Pool(processes=8) as pool:  
             results = pool.map(evaluate_fitness, pop)
         fitnesses, placements = map(list, zip(*results))
 
-        # print("fitnesses - ", fitnesses)         
+        # print("fitnesses - ", fitnesses)     
         # print("placements - ", placements) 
 
         fitnesses_main += fitnesses
