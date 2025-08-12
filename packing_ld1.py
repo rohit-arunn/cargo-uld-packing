@@ -34,8 +34,8 @@ for idx, row in df.iterrows():
 
 def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.7, give_ratio = False):
     if z == 0:
-        return True  # Base layer is always supported
-    elif x+(dx/2) > 61.5 and z < 21.33:
+        return True  # Base layer is always supported 
+    elif 1.4300014300014 * z + 61.4980694 - 1 < (x+dx) < 1.4300014300014 * z + 61.4980694 + 1:
         return True
 
     support_area = grid[z - 1, y:y + dy, x:x + dx]
@@ -277,4 +277,5 @@ ax.set_zlim(0, 70)
 ax.set_title('Packing inside ULD')
 ax.view_init(elev=25, azim=35)
 plt.tight_layout()
+
 plt.show()
