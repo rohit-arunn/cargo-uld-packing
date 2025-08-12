@@ -35,12 +35,12 @@ for idx, row in df.iterrows():
 
 
 
-def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.7, give_ratio = False):
+def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.7, give_ratio = False): 
     if z == 0:
-        return True  # Base layer is always supported
-    elif x+(dx/2) > 142.5 and z < 21.33:
+        return True  # Base layer is always supported 
+    elif -0.82644 * z +17.6280 - 1 < x < -0.82644 * z + 17.6281 + 1:
         return True
-    elif x+(dx/2) < 17.5 and z < 21.33:
+    elif 0.826 * z + 142.5 - 1 < (x+dx) < 0.826 * z + 142.5 + 1:
         return True
 
     support_area = grid[z - 1, y:y + dy, x:x + dx]
@@ -317,4 +317,5 @@ def grid_based_pack(box_list, container_dims=(160, 60.4, 64), grid_step=1):
 # )
 
 # # Open in browser
+
 # plot(fig, filename='3d_boxes.html', auto_open=True)
