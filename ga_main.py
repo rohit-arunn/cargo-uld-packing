@@ -4,6 +4,8 @@ import random
 from multiprocessing import Pool
 import random
 import random
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 from packing_main import GridBasedPacking
 
 GRID_STEP = 1 
@@ -34,6 +36,46 @@ for idx, row in df.iterrows():
 def evaluate_fitness_wrapper(args):
     self, chromosome = args
     return self.evaluate_fitness(chromosome)
+
+def export_packing_report(placed_boxes, filename="packing_report.xlsx"):
+    data = []
+    for box in placed_boxes:
+        data.append({
+            "Box ID": box['box_id'],
+            "Position (X,Y,Z)": f"{box['position'][0]}, {box['position'][1]}, {box['position'][2]}",
+            "Dimensions (LxWxH)": f"{box['dimensions'][0]}x{box['dimensions'][1]}x{box['dimensions'][2]}",
+            "Weight": box.get('weight', 'N/A'),
+            "Color": box.get('colour')   # e.g. "rgb(27, 40, 252)"
+        })
+    
+    # Save initial DataFrame
+    df = pd.DataFrame(data)
+    df.to_excel(filename, index=False)
+    
+    # Reopen with openpyxl to style the Color column
+    wb = load_workbook(filename)
+    ws = wb.active
+    
+    # Find the index of the Color column
+    color_col = list(df.columns).index("Color") + 1  # +1 because Excel cols are 1-based
+    
+    for row in range(2, len(df) + 2):  # skip header row
+        rgb_string = ws.cell(row=row, column=color_col).value
+        if rgb_string and rgb_string.startswith("rgb"):
+            # Convert "rgb(r, g, b)" → hex
+            rgb = rgb_string.replace("rgb(", "").replace(")", "").split(",")
+            r, g, b = [int(x.strip()) for x in rgb]
+            hex_color = "{:02X}{:02X}{:02X}".format(r, g, b)
+            
+            # Apply fill
+            fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
+            ws.cell(row=row, column=color_col).fill = fill
+            
+            # Optional: clear text so only color shows
+            ws.cell(row=row, column=color_col).value = ""
+    
+    wb.save(filename)
+    print(f"Packing report updated at {filename}")
    
 
 class GeneticAlgorithm:
