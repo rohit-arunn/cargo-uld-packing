@@ -353,7 +353,7 @@ box3 = create_box(2, 5, 2, 4, 2, 3, color='green', opacity=1.0, name="Box 3")
 
 container_mesh, container_edges = create_ld3('lightgray')
 
-fig = go.Figure(data=[container_mesh, container_edges, box1, box2, box3])
+fig = go.Figure(data=[container_mesh, container_edges])
 fig.update_layout(
     scene=dict(
         xaxis=dict(nticks=10, range=[0, 80], backgroundcolor="white"),
@@ -366,3 +366,5 @@ fig.update_layout(
 
 # Open in browser
 #plot(fig, filename='3d_boxes.html', auto_open=True)
+
+
