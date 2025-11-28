@@ -3,13 +3,12 @@ import math
 import pandas as pd
 import random
 from multiprocessing import Pool
-import random
 import matplotlib.pyplot as plt
 from plotly_main import create_ld3, create_box
 import plotly.graph_objects as go
 from plotly.offline import plot
 from itertools import permutations
-from ga_main import GeneticAlgorithm
+from ga_main import GeneticAlgorithm, export_packing_report
 
 df = pd.read_parquet("flight_ICN_to_BUD.parquet")
 
@@ -36,15 +35,15 @@ for idx, row in df.iterrows():
 
 
 
-
+#Function for running the main core. 
 if __name__ == '__main__':
     ga = GeneticAlgorithm(
     boxes=boxes,
     uld_checker = "LD3",   
     container_dims=(79, 60.4, 64), 
     grid_step=1,
-    pop_size=5,
-    generations=300,
+    pop_size=10,
+    generations=10,
     mutation_rate=0.3,
     processes=8
 )
@@ -79,8 +78,12 @@ if __name__ == '__main__':
         margin=dict(l=0, r=0, t=0, b=0),
     )
 
+    
+
     # Open in browser                                                     
     plot(fig, filename='Optimized_packing_ld3.html', auto_open=True)
+
+    export_packing_report(best_chromosome)
 
     plt.plot(generations_plot, fitness_history)
     plt.xlabel("Generation")
