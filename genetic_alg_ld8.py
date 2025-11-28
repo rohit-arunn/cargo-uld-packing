@@ -86,3 +86,4 @@ if __name__ == '__main__':
     plt.xlabel("Generation")
     plt.ylabel("Best Fitness")
     plt.show()
+
