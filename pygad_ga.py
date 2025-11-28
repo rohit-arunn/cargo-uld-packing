@@ -3,8 +3,9 @@ import numpy as np
 import uuid
 import pandas as pd
 import copy
+import random
 import matplotlib.pyplot as plt
-from plotly_main import create_container, create_box
+from plotly_main import create_ld1, create_box
 import plotly.graph_objects as go
 from plotly.offline import plot
 from packing_ld1 import grid_based_pack, draw_box, draw_uld
@@ -39,9 +40,19 @@ best_fitness = -np.inf  # Global variables
 best_key = None  # Global variable to track best placement key 
 
 
+def function2callprocess(solution, solution_idx, generation_number):
+    return random.random()
        
 
 def fitness_function(ga_instance, solution, solution_idx):
+
+
+
+    print("generations_completed", ga_instance.generations_completed)
+    generation = ga_instance.generations_completed
+    data = function2callprocess(solution, solution_idx, generation)
+
+
     global best_fitness, best_key
     order = list(map(int, solution))
     print("The order - ", order)
@@ -87,31 +98,39 @@ parent_selection_type="tournament"
 best_packed_per_generation = []  # This stores actual packed positions
 best_fitness_per_generation = []
 
+# def on_generation(ga_instance):
+#     generation = ga_instance.generations_completed
+#     solution, fitness, solution_idx = ga_instance.best_solution()
+
+#     key = f"G{generation}_S{solution_idx}"
+
+#     # This will only work if 'solution_placements[key]' was created in fitness function
+#     if key in solution_placements:
+#         packed_boxes = solution_placements[key]
+#         best_packed_per_generation.append(packed_boxes)
+#         best_fitness_per_generation.append(fitness)
+
+#         print(f"Generation {generation} | Fitness: {fitness} | Boxes placed: {len(packed_boxes)}")
+#     else:
+#         print(f"[Warning] Placement data not found for {key}")
+
+last_fitness = 0
 def on_generation(ga_instance):
-    generation = ga_instance.generations_completed
-    solution, fitness, solution_idx = ga_instance.best_solution()
-
-    key = f"G{generation}_S{solution_idx}"
-
-    # This will only work if 'solution_placements[key]' was created in fitness function
-    if key in solution_placements:
-        packed_boxes = solution_placements[key]
-        best_packed_per_generation.append(packed_boxes)
-        best_fitness_per_generation.append(fitness)
-
-        print(f"Generation {generation} | Fitness: {fitness} | Boxes placed: {len(packed_boxes)}")
-    else:
-        print(f"[Warning] Placement data not found for {key}")
+    global last_fitness
+    print("Generation = {generation}".format(generation=ga_instance.generations_completed))
+    print("Fitness    = {fitness}".format(fitness=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]))
+    print("Change     = {change}".format(change=ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1] - last_fitness))
+    last_fitness = ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)[1]
 
 
 ga_instance = pygad.GA(
-    num_generations=3,
+    num_generations=4,
     num_parents_mating=3,
     fitness_func=fitness_function,
-    sol_per_pop=3,
+    sol_per_pop=4,
     num_genes=num_genes,
     gene_type=int,
-    gene_space=list(range(len(boxes))),
+    gene_space=list(range(len(boxes))), #the length of the chromosome
     allow_duplicate_genes=False,
     on_generation=on_generation, 
     parent_selection_type=parent_selection_type,
@@ -123,31 +142,38 @@ ga_instance = pygad.GA(
 
 
 
+
+
 if __name__ == '__main__':
 
     # Run the GA 
     ga_instance.run()
 
-    # Get the best solution  
-    # solution, solution_fitness, solution_idx = ga_instance.best_solution()
+    solution, solution_fitness, solution_idx = ga_instance.best_solution(ga_instance.last_generation_fitness)
+    returned_boxes = [boxes[i] for i in solution]
+    print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+    print("returned boxes - ", returned_boxes)
+
+    # Get the best solution 
+    # solution, solution_fitness, solution_idx = ga_instance.best_solution() 
     # print("Best solution (box order):", solution)
     # print("Fitness value of the best solution:", solution_fitness)
-    # print("Recorded solution indices:", solution_placements.keys())
+    #print("Recorded solution indices:", solution_placements.keys())
     # print("Index:", solution_idx)
 
     # if ga_instance.best_solution_generation != -1:
     #     print(f"Best fitness value reached after {ga_instance.best_solution_generation} generations.")
 
-    # Get index of best fitness across all generations
-   # Find the best generation index
-    best_gen_idx = best_fitness_per_generation.index(max(best_fitness_per_generation))
+    
+#    # Find the best generation index
+#     best_gen_idx = best_fitness_per_generation.index(max(best_fitness_per_generation))
 
-    # Get best packed result with positions
-    returned_boxes = best_packed_per_generation[best_gen_idx]
-    best_overall_fitness = best_fitness_per_generation[best_gen_idx]
+#     # Get best packed result with positions
+#     returned_boxes = best_packed_per_generation[best_gen_idx]
+#     best_overall_fitness = best_fitness_per_generation[best_gen_idx]
 
 
-    print("The best fitness across all is -", best_overall_fitness)
+#     print("The best fitness across all is -", best_overall_fitness)
 
 
 
@@ -163,7 +189,7 @@ if __name__ == '__main__':
         for box in returned_boxes
     ]
 
-    container_mesh, container_edges = create_container('lightgray')
+    container_mesh, container_edges = create_ld1('lightgray')
 
     traces = [container_mesh, container_edges]
 
@@ -183,6 +209,4 @@ if __name__ == '__main__':
 
     # Open in browser 
     plot(fig, filename='Optimized_with_PyGAD.html', auto_open=True)
-
-
 
