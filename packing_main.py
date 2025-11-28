@@ -8,12 +8,12 @@ import matplotlib.pyplot as plt
 from plotly_main import create_ld8, create_box
 import plotly.graph_objects as go
 from plotly.offline import plot
-#from packing_ld1 import ld1_checker as ld1
-#from packing_ld2 import ld2_checker as ld2
+from packing_ld1 import ld1_checker as ld1
+from packing_ld2 import ld2_checker as ld2
 from packing_ld3 import ld3_checker as ld3
-# from packing_ld6 import ld6_checker as ld6
-# from packing_ld8 import ld8_checker as ld8
-# from packing_ld9 import ld9_checker as ld9
+from packing_ld6 import ld6_checker as ld6
+from packing_ld8 import ld8_checker as ld8
+from packing_ld9 import ld9_checker as ld9
 # from packing_ld11 import ld11_checker as ld11
 # from packing_ld39 import ld11_checker as ld39
 
@@ -43,12 +43,12 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 #     })
 
 ULD_CHECKERS = {
-    # "LD1": ld1,
-    # "LD2": ld2,
+    "LD1": ld1,
+    "LD2": ld2,
     "LD3": ld3,
-    # "LD6": ld6,
-    # "LD8": ld8,
-    # "LD9": ld9,     
+    "LD6": ld6,
+    "LD8": ld8,
+    "LD9": ld9,     
 }
 
 def get_unique_rotations(box_dims, grid_step=1):
@@ -256,3 +256,5 @@ class GridBasedPacking:
                 box_list = next_box_list
 
         return placed_boxes, grid
+    
+   
