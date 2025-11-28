@@ -1,40 +1,42 @@
 import numpy as np
 import pandas as pd
+from numba import njit
 import random
 from multiprocessing import Pool, cpu_count
 from packing import draw_uld, draw_box
-import random
 import matplotlib.pyplot as plt
-from plotly_main import create_container, create_box
+from plotly_main import create_ld1, create_box
 import plotly.graph_objects as go
 from plotly.offline import plot
-import random
-from packing_ld1 import grid_based_pack, is_supported_in_grid, is_point_inside_uld, is_box_inside_uld, get_unique_rotations
+from packing_ld1 import grid_based_pack, is_supported_in_ld1, is_point_inside_ld1, is_box_inside_ld1, get_unique_rotations
 from itertools import permutations
 
 GRID_STEP = 1 
 
 df = pd.read_parquet("flight_ICN_to_BUD.parquet")
 
-boxes = [] #
-for idx, row in df.iterrows():
-    box_id = (
-        row['mstdocnum'], row['docowridr'], row['dupnum'],
-        row['seqnum'], row['ratlinsernum'], row['dimsernum']
-    ) 
-    length = float(row['pcslen']) 
-    width = float(row['pcswid']) 
-    height = float(row['pcshgt']) 
-    numpcs = int(row['dim_numpcs'])
-    weight = float(row['dim_wgt']) 
+# boxes = [] 
+# for idx, row in df.iterrows():
+#     box_id = (
+#         row['mstdocnum'], row['docowridr'], row['dupnum'],
+#         row['seqnum'], row['ratlinsernum'], row['dimsernum']
+#     ) 
+#     length = float(row['pcslen']) 
+#     width = float(row['pcswid']) 
+#     height = float(row['pcshgt']) 
+#     numpcs = int(row['dim_numpcs'])
+#     weight = float(row['dim_wgt']) 
 
-    boxes.append({
-        'box_id': box_id,
-        'dimensions': (length, width, height),
-        'number' : numpcs, 
-        'weight': weight
+#     boxes.append({
+#         'box_id': box_id,
+#         'dimensions': (length, width, height),
+#         'number' : numpcs, 
+#         'weight': weight 
 
-    })
+#     })
+
+boxes = [{'box_id': 36, 'dimensions': (5, 20, 5), 'number': 550, 'weight': 20}]
+
 
            
 CONTAINER_DIMS = (92, 60.4, 64)    
@@ -52,7 +54,7 @@ def calculate_weight_penalty(placed_boxes, grid_step=1):
         dx, dy, dz = box['dimensions']
         weight = box['weight']
 
-        # Check if there's any box directly below
+        # Check if there's any box directly below 
         for other in placed_boxes:
             if other == box:
                 continue
@@ -60,7 +62,7 @@ def calculate_weight_penalty(placed_boxes, grid_step=1):
             odx, ody, odz = other['dimensions']
             oweight = other['weight']
 
-            # Check if box is sitting directly on top of 'other'
+            # Check if box is sitting directly on top of 'other'   
             same_xy = (
                 ox < x + dx and ox + odx > x and
                 oy < y + dy and oy + ody > y
@@ -70,8 +72,7 @@ def calculate_weight_penalty(placed_boxes, grid_step=1):
             if same_xy and touching_z:
                 if weight > oweight:
                     penalty += (weight - oweight)  # Or any scaled version
-                break  # Only penalize once per support
-
+                break  # Only penalize once per support 
     return penalty
 
 
@@ -100,7 +101,7 @@ def grid_fill_ratio(grid):
 
     used_grid = grid[:highest_layer]
 
-    # Step 3: Count filled cells and total space in used volume  
+    # Step 3: Count filled cells and total space in used volume 
     filled_spaces = np.count_nonzero(used_grid)
     total_spaces = used_grid.size
 
@@ -118,7 +119,7 @@ def evaluate_fitness(chromosome):
             'box_id': src['box_id'],
             'dimensions': src['dimensions'],
             'number': src.get('number', 1),
-            'weight': weight,
+            'weight': src.get('weight'),
             'colour': src.get('colour', (random.random(), random.random(), random.random()))
         })
 
@@ -134,20 +135,20 @@ def evaluate_fitness(chromosome):
     weight_penalty = calculate_weight_penalty(placed)
     volume_reward = grid_fill_ratio(grid)
 
-    fitness_function = volume_reward - 0.005*weight_penalty          
+    fitness_function = volume_reward #- 0.005*weight_penalty          
     return fitness_function, placed
 
 # def crossover(parent1, parent2): 
 #     size = len(parent1)
 #     cut = random.randint(1, size - 1)
-#     child = parent1[:cut] + parent2[cut:]
+#     child = parent1[:cut] + parent2[cut:]    
 #     return child
 
 
 # def mutate(chromo, mutation_rate=0.3):  
 #     for gene in chromo:
 #         if random.random() < mutation_rate:
-#             gene['rotation'] = random.choice(all_rotations(gene['rotation']))  
+#             gene['rotation'] = random.choice(all_rotations(gene['rotation']))    
 
 def crossover(parent1, parent2):
     size = len(parent1)
@@ -157,7 +158,7 @@ def crossover(parent1, parent2):
     child = [None] * size
     child[a:b] = parent1[a:b]
 
-    # Step 2: Fill remaining slots with boxes from parent2, skipping ones already present
+    # Step 2: Fill remaining slots with boxes from parent2, skipping ones already presents
     def get_box_id(box): return box['box_id']
     existing_ids = set(get_box_id(box) for box in child if box is not None)
 
@@ -172,42 +173,88 @@ def crossover(parent1, parent2):
     return child
 
 
+# @njit
+# def mutate(chromo, mutation_rate=0.1):
+#     n = len(chromo)
+#     num_swaps = max(1, int(mutation_rate * n))
 
-def mutate(chromo, mutation_rate=0.1):
+#     for _ in range(num_swaps):
+#         i = np.random.randint(0, n)
+#         j = np.random.randint(0, n)
+#         while j == i:  # ensure different indices
+#             j = np.random.randint(0, n)
+
+#         # swap
+#         tmp = chromo[i]
+#         chromo[i] = chromo[j]
+#         chromo[j] = tmp
+
+#     return chromo
+
+
+# def mutate(chromo, mutation_rate=0.1):
+#     num_swaps = max(1, int(mutation_rate * len(chromo)))
+#     for _ in range(num_swaps):
+#         i, j = random.sample(range(len(chromo)), 2)   
+#         chromo[i], chromo[j] = chromo[j], chromo[i]
+#     return chromo
+
+
+def mutate(chromo, mutation_rate=0.1, P=None):
+    chromo = chromo.copy()   # avoid modifying original
+    
     num_swaps = max(1, int(mutation_rate * len(chromo)))
     for _ in range(num_swaps):
-        i, j = random.sample(range(len(chromo)), 2)   
-        chromo[i], chromo[j] = chromo[j], chromo[i]
+        i, j = random.sample(range(len(chromo)), 2)
+
+        if P is not None:
+            # Use box_id as a key into P
+            bi = chromo[i]['box_id'][0]  # e.g. first element of tuple as unique ID
+            bj = chromo[j]['box_id'][0]
+
+            pi = P[bi, i] if bi < P.shape[0] else 0
+            pj = P[bj, j] if bj < P.shape[0] else 0
+
+            if pj > pi:
+                chromo[i], chromo[j] = chromo[j], chromo[i]
+            elif random.random() < 0.2:  # exploration
+                chromo[i], chromo[j] = chromo[j], chromo[i]
+        else:
+            # plain random swap
+            chromo[i], chromo[j] = chromo[j], chromo[i]
     return chromo
 
 
 
-def run_ga(boxes, generations=3, pop_size=3): 
+
+def run_ga(boxes, generations=3, pop_size=8): 
     pop = generate_initial_population(boxes, pop_size)
 
     fitnesses_main = []
     placements_main = []
+    generations_plot = []
+    fitness_history = []
+
+    # Initialize probability matrix for positional learning
+    num_boxes = len(boxes)
+    P = np.ones((num_boxes, num_boxes)) / num_boxes  # uniform start
+    learning_rate = 0.05
 
     for gen in range(generations):
-        with Pool(processes=8) as pool:  
+        with Pool(processes=8) as pool:                       
             results = pool.map(evaluate_fitness, pop)
         fitnesses, placements = map(list, zip(*results))
-
-        # print("fitnesses - ", fitnesses)         
-        # print("placements - ", placements)
-
 
         fitnesses_main += fitnesses
         placements_main += placements
 
-
-
         print(f'GEN {gen:03d}  best = {max(fitnesses):.3f}')
+        generations_plot.append(gen)          # x-axis
+        fitness_history.append(max(fitnesses))  # y-axis 
 
-        # Selection ( size 3)  athu parquet aakkitt parquey
-        # 
+        # --- Selection (size k tournament) ---
         def select():
-            k = 3
+            k = 5
             contenders = random.sample(list(zip(pop, fitnesses)), k)
             contenders.sort(key=lambda t: t[1], reverse=True)
             return contenders[0][0]
@@ -216,21 +263,36 @@ def run_ga(boxes, generations=3, pop_size=3):
         while len(next_pop) < pop_size:
             p1, p2  = select(), select()
             child   = crossover(p1, p2)
-            child = mutate(child, 0.3)
+
+            # mutation now biased by probability matrix P
+            child = mutate(child, 0.3, P)
+
             next_pop.append(child) 
+
+        # --- Learning step ---
+        # We already know which individuals are best this generation
+        # -> Update P based on elites (no re-evaluation needed)
+        elite_indices = np.argsort(fitnesses)[-3:]   # top 3 as example
+        for idx in elite_indices:
+            elite = pop[idx]
+            for pos, box in enumerate(elite):
+                P[box, pos] += learning_rate
+        # Normalize
+        P /= np.sum(P, axis=0, keepdims=True)
 
         pop = next_pop
 
     idx = fitnesses_main.index(max(fitnesses_main))
-    #print("Best placement - ", placements_main[idx]) 
+    print("The generation which is being printed - ", idx)
+    #print("Best placement - ", placements_main[idx])
 
 
-    # Return best chromosome
+    # Return best chromosome     
     
-    return placements_main[idx]
+    return placements_main[idx], generations_plot, fitness_history
 
 if __name__ == '__main__':
-    best = run_ga(boxes)
+    best, generations_plot, fitness_history = run_ga(boxes)
     print('Best chromosome positions:')
     for g in best:
         print(g['box_id'], g['position'])
@@ -239,7 +301,7 @@ if __name__ == '__main__':
     # fig = plt.figure(figsize=(10, 7))
     # ax = fig.add_subplot(111, projection='3d') 
 
-    # draw_uld(ax)
+    # draw_uld(ax)                     
 
     # #best_chromosome = run_ga(boxes) 
 
@@ -277,7 +339,7 @@ if __name__ == '__main__':
     a = len(box_data)
     print("No: of boxes plotted -", a)
 
-    container_mesh, container_edges = create_container('lightgray')
+    container_mesh, container_edges = create_ld1('lightgray')
 
     traces = [container_mesh, container_edges]
 
@@ -297,3 +359,8 @@ if __name__ == '__main__':
 
     # Open in browser
     plot(fig, filename='Optimized_packing.html', auto_open=True)
+
+    plt.plot(generations_plot, fitness_history)
+    plt.xlabel("Generation")
+    plt.ylabel("Best Fitness")
+    plt.show()
