@@ -37,3 +37,4 @@ print("idx is - ", solution_idx)
            
 # Plot the fitness progress
 ga_instance.plot_fitness()
+
