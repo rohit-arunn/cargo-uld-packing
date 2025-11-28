@@ -158,3 +158,4 @@ def grid_based_pack(box_list, container_dims=(92, 60.4, 64), grid_step=1):
             box_list = next_box_list
 
     return placed_boxes, grid
+
