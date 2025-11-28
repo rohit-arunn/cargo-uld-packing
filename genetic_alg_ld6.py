@@ -35,10 +35,7 @@ for idx, row in df.iterrows():
 
     })
 
-#boxes = [{'box_id': 36, 'dimensions': (10, 20, 10), 'number': 10}, {'box_id': 26, 'dimensions': (5, 10, 5), 'number': 40}]
-
-
-
+#boxes = [{'box_id': 36, 'dimensions': (10, 20, 10), 'number': 10}, {'box_id': 26, 'dimensions': (5, 10, 5), 'number': 40}] 
 
              
 CONTAINER_DIMS = (160, 60.4, 64)    
@@ -261,7 +258,7 @@ if __name__ == '__main__':
     container_dims=(160, 60.4, 64), 
     grid_step=1,
     pop_size=10,
-    generations=5,
+    generations=10,
     mutation_rate=0.3,
     processes=8
 )
@@ -311,4 +308,9 @@ if __name__ == '__main__':
 
 
     
+
+
+
+    
+
 
