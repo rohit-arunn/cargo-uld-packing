@@ -32,9 +32,9 @@ for idx, row in df.iterrows():
 
 
 
-def is_supported_in_grid(x, y, z, dx, dy, dz, grid, threshold=0.7):
+def is_supported_in_ld2(x, y, z, dx, dy, dz, grid, threshold=0.7):
     if z == 0:
-        return True  # Base layer is always supported
+        return True  # Base layer is always supported  
     elif x+dx > 47 and z < 16:
         return True
 
@@ -63,6 +63,13 @@ def get_unique_rotations(box_dims, grid_step=1):
             filtered.append(rot)
     
     return filtered 
+
+def ld2_checker(x, y, z, dx, dy, dz, grid, threshold = 0.9):
+    return (
+        is_box_inside_ld2(x, y, z, dx, dy, dz)
+        and is_supported_in_ld2(x, y, z, dx, dy, dz, grid, threshold)
+    )
+
 
 
 def grid_based_pack(box_list, container_dims=(61.5, 60.4, 64), grid_step=1):
@@ -108,7 +115,7 @@ def grid_based_pack(box_list, container_dims=(61.5, 60.4, 64), grid_step=1):
                         
                             if (np.all(grid[z:z+dz, y:y+dy, x:x+dx] == 0) and
                                 is_box_inside_ld2(x, y, z, dx, dy, dz) and
-                                is_supported_in_grid(x, y, z, dx, dy, dz, grid)
+                                is_supported_in_ld2(x, y, z, dx, dy, dz, grid)
                                     ):
                             
                                 grid[z:z+dz, y:y+dy, x:x+dx] = 1
@@ -238,34 +245,34 @@ def grid_based_pack(box_list, container_dims=(61.5, 60.4, 64), grid_step=1):
 #     return placed_boxes, grid
 
 
-fig = plt.figure(figsize=(10, 7))
-ax = fig.add_subplot(111, projection='3d')
+# fig = plt.figure(figsize=(10, 7))
+# ax = fig.add_subplot(111, projection='3d')
 
-draw_uld_ld2(ax)
+# draw_uld_ld2(ax)
 
-best_chromosome = grid_based_pack(boxes)
-print(best_chromosome)
-a = 0
+# best_chromosome = grid_based_pack(boxes)
+# print(best_chromosome)
+# a = 0
 
-for box in best_chromosome:
-        x, y, z = box['position']
-        dx, dy, dz = box['dimensions']
-        color = box['colour']
-        draw_box(ax, x, y, z, dx, dy, dz, color)
-        a+=1
+# for box in best_chromosome:
+#         x, y, z = box['position']
+#         dx, dy, dz = box['dimensions']
+#         color = box['colour']
+#         draw_box(ax, x, y, z, dx, dy, dz, color)
+#         a+=1
 
-print(a)
+# print(a)
 
 
 
-#Axis setup
-ax.set_xlabel('X (Width)')
-ax.set_ylabel('Y (Depth)')
-ax.set_zlabel('Z (Height)')
-ax.set_xlim(0, 100)
-ax.set_ylim(0, 70)
-ax.set_zlim(0, 70)
-ax.set_title('Packing inside ULD')
-ax.view_init(elev=25, azim=35)
-plt.tight_layout()
-plt.show()
+# #Axis setup
+# ax.set_xlabel('X (Width)')
+# ax.set_ylabel('Y (Depth)')
+# ax.set_zlabel('Z (Height)')
+# ax.set_xlim(0, 100)
+# ax.set_ylim(0, 70)
+# ax.set_zlim(0, 70)
+# ax.set_title('Packing inside LD2')
+# ax.view_init(elev=25, azim=35)
+# plt.tight_layout()
+# plt.show()
