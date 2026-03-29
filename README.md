@@ -6,6 +6,11 @@ Efficient cargo loading is a critical problem in the aviation and logistics indu
 
 This project presents a system for **visualizing and optimizing the arrangement of cargo boxes inside ULDs**. It combines classical packing heuristics with evolutionary optimization techniques to produce high-quality packing layouts while respecting real-world constraints.
 
+Here are 2 snippets of a ULD - 
+
+* ![Unit Load Device](ULD1.png)
+* ![Unit Load Device](ULD2.png)
+
 ---
 
 ## Problem Statement
