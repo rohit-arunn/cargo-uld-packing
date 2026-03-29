@@ -139,9 +139,9 @@ The system produces:
  
 * Here are some results of the optimization engine:
 
-* ![Result](cargo-uld-packing/result1.png)
+* ![Result](result1.png)
 
-* ![Result](cargo-uld-packing/result2.png)
+* ![Result](result2.png)
 
 ---
 
