@@ -136,6 +136,10 @@ The system produces:
 * Comparative analysis:
 
   * Greedy (BLB) vs Genetic Algorithm performance
+ 
+* Here are some results of the optimization engine:
+
+* ![Result](result 1.png)
 
 ---
 
