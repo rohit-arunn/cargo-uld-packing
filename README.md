@@ -8,8 +8,8 @@ This project presents a system for **visualizing and optimizing the arrangement 
 
 Here are 2 snippets of a ULD - 
 
-* ![Unit Load Device](ULD1.png)
-* ![Unit Load Device](ULD2.png)
+* ![Unit Load Device](ULD1.jpg)
+* ![Unit Load Device](ULD2.jpg)
 
 ---
 
