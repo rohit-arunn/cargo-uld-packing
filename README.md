@@ -99,18 +99,6 @@ This enables exploration beyond greedy solutions and improves packing quality ov
   * Boxes in distinct colors
 * Helps in debugging, analysis, and presentation
 
----
-
-## Project Structure
-
-```
-.
-├── data_loader.py          # Reads input data (CSV/JSON)
-├── packing_simulator.py   # BLB / space-based packing logic
-├── genetic_algorithm.py   # GA implementation
-├── uld_visualizer.py      # 3D visualization; althought there would be multiple files for each type of ULD(Unit Load Device)
-├── main.py                # Entry point (pipeline orchestration)
-```
 
 ---
 
